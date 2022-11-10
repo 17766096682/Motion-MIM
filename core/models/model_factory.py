@@ -2,13 +2,9 @@ import os
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from core.models import PredRNN
-# from core.models import STAU
-# from core.models import AAU
-# from core.models import STAUv2
-# from core.models import AAUv2
-import torch.optim.lr_scheduler as lr_scheduler
+from core.models import MotionRNN_MIM
 
+import torch.optim.lr_scheduler as lr_scheduler
 class Model(object):
     def __init__(self, configs):
         self.configs = configs
@@ -17,7 +13,7 @@ class Model(object):
         self.patch_channel = configs.img_channel * (configs.patch_size ** 2)
         self.num_layers = configs.num_layers
         networks_map = {
-            'ConvLSTM': PredRNN.RNN,
+            'ConvLSTM': MotionRNN_MIM.MotionRNN_MIM,
             # 'stau': STAU.RNN,
             # 'aau': AAU.RNN,
             # 'stauv2': STAUv2.RNN, 

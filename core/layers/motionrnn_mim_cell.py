@@ -1,6 +1,4 @@
-from torch import nn
 import torch
-import sys
 import torch.nn as nn
 
 
@@ -38,9 +36,11 @@ def Warp(input, flow):
 
 
 class MotionRNN_cell(nn.Module):
-    def __init__(self, input_channel, output_channel, b_h_w, kernel_size, stride, padding):
+    def __init__(self, input_channel, output_channel, b_h_w, kernel_size, stride,numlayers):
         super().__init__()
-
+        self.kernel_size = kernel_size
+        self.padding = (self.kernel_size[0] // 2, self.kernel_size[1] // 2)
+        self.numlauyers = numlayers
         self.alpha = 0.5
         self.k = 3
         self._input_channel = input_channel
@@ -48,34 +48,34 @@ class MotionRNN_cell(nn.Module):
 
         self._batch_size, self._state_height, self._state_width = b_h_w
         self._conv_x2h_n = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 3,
-                                         kernel_size=kernel_size, stride=stride, padding=padding)
+                                         kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_n2h_n = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 3,
-                                         kernel_size=kernel_size, stride=stride, padding=padding)
+                                         kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_diff2o = nn.Conv2d(in_channels=input_channel, out_channels=output_channel,
-                                          kernel_size=kernel_size, stride=stride, padding=padding)
+                                          kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_n2o = nn.Conv2d(in_channels=input_channel, out_channels=output_channel,
-                                       kernel_size=kernel_size, stride=stride, padding=padding)
+                                       kernel_size=kernel_size, stride=stride, padding=self.padding)
 
         self._conv_x2h_s = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 4,
-                                         kernel_size=kernel_size, stride=stride, padding=padding)
+                                         kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_c2h_s = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 4,
-                                         kernel_size=kernel_size, stride=stride, padding=padding)
+                                         kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_s2o = nn.Conv2d(in_channels=input_channel, out_channels=output_channel,
-                                       kernel_size=kernel_size, stride=stride, padding=padding)
+                                       kernel_size=kernel_size, stride=stride, padding=self.padding)
 
         self._conv_x2h = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 4,
-                                       kernel_size=kernel_size, stride=stride, padding=padding)
+                                       kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_h2h = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 4,
-                                       kernel_size=kernel_size, stride=stride, padding=padding)
+                                       kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_c2o = nn.Conv2d(in_channels=input_channel, out_channels=output_channel,
-                                       kernel_size=kernel_size, stride=stride, padding=padding)
+                                       kernel_size=kernel_size, stride=stride, padding=self.padding)
 
         self._conv_x2h_m = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 3,
-                                         kernel_size=kernel_size, stride=stride, padding=padding)
+                                         kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_m2h_m = nn.Conv2d(in_channels=input_channel, out_channels=output_channel * 3,
-                                         kernel_size=kernel_size, stride=stride, padding=padding)
+                                         kernel_size=kernel_size, stride=stride, padding=self.padding)
         self._conv_m2o = nn.Conv2d(in_channels=input_channel, out_channels=output_channel,
-                                       kernel_size=kernel_size, stride=stride, padding=padding)
+                                       kernel_size=kernel_size, stride=stride, padding=self.padding)
 
         self._conv_c_m = nn.Conv2d(in_channels=2 * output_channel, out_channels=output_channel,
                                        kernel_size=1, stride=1, padding=0)
@@ -98,7 +98,7 @@ class MotionRNN_cell(nn.Module):
 
         self._conv_dec = nn.Conv2d(in_channels=input_channel // 4 * self.k ** 2,
                                        out_channels=input_channel // 4, kernel_size=1, stride=1, padding=0)
-        self._deconv_dec = nn.Conv2d(in_channels=input_channel // 4, out_channels=input_channel,
+        self._deconv_dec = nn.ConvTranspose2d(in_channels=input_channel // 4, out_channels=input_channel,
                                            kernel_size=4, stride=2, padding=1)
 
         self._conv_g = nn.Conv2d(in_channels=input_channel * 2, out_channels=output_channel,
@@ -209,7 +209,7 @@ class MotionRNN_cell(nn.Module):
         X, next_F, next_D = self.MotionGRU(next_h, F, D)
 
         # Motion Highway
-        if l != cfg.LSTM_layers - 1:
+        if l != self.numlauyers - 1:
             next_h = X + (1 - o) * x
 
         ouput = next_h
